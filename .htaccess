@@ -1,0 +1,23 @@
+RewriteEngine On
+
+# ==================== SECURITY ====================
+RewriteRule ^(config|helpers|vendor)/(.*) - [F,L]
+
+<FilesMatch "\.(env|htaccess|log|sql|bak|swp)$">
+    Order deny,allow
+    Deny from all
+</FilesMatch>
+
+# ==================== URL HANDLING ====================
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)/$ /$1 [L,R=301]
+
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# ==================== MAIN ROUTING ====================
+RewriteRule ^(.*)$ index.php [QSA,L]
+
+ErrorDocument 404 /index.php
+ErrorDocument 403 /index.php
