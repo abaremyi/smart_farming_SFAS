@@ -1,7 +1,7 @@
 /* ============================================================
    SFAS — Smart Farming Advisory System
    portal.css  |  Green AgriTech theme
-   Matches existing Mushya/SIPIS MVC pattern
+   Matches existing MVC pattern
    ============================================================ */
 
 /* ── Reset & Base ─────────────────────────────────────────── */
@@ -421,7 +421,7 @@ code,pre,.mono{font-family:'JetBrains Mono',monospace}
 .tip-card h3{font-size:1rem;font-weight:700;color:var(--slate-800);margin-bottom:.5rem}
 .tip-card p{font-size:.875rem;color:var(--text-muted);line-height:1.65}
 .tip-card .tip-meta{
-  display:flex;align-items:center;gap.75rem;flex-wrap:wrap;
+  display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;
   font-size:.77rem;color:var(--text-light);margin-top:1rem;
   padding-top:.75rem;border-top:1px solid var(--border);
 }
