@@ -1,11 +1,10 @@
 <?php
 /**
- * SFAS — AI Chat API
+ * SFAS — AI Chat API (Multi-Provider)
  * File: modules/AI/api/chatApi.php
  *
- * Calls Anthropic Claude API with a smart farming system prompt.
- * FREE to use — you only pay for what you use via Anthropic API key.
- * Get a free key at: https://console.anthropic.com
+ * Supports: Google Gemini, Groq, OpenRouter, Anthropic Claude
+ * Auto-detects provider from API key prefix
  */
 header('Content-Type: application/json');
 header('Access-Control-Allow-Credentials: true');
@@ -70,69 +69,261 @@ IMPORTANT RULES:
 Current context: Nyagatare District (Eastern Province), Rwanda. Season B 2026 is underway.
 PROMPT;
 
-// ── Build messages array for API ──────────────────────────
-$messages = $cleanHistory;
-$messages[] = ['role' => 'user', 'content' => $message];
-
-// ── Call Anthropic Claude API ─────────────────────────────
+// ── Get API Key ─────────────────────────────────────────────
 $apiKey = defined('ANTHROPIC_API_KEY') ? ANTHROPIC_API_KEY : ($_ENV['ANTHROPIC_API_KEY'] ?? '');
 
 if (empty($apiKey)) {
-    // Fallback: return a helpful canned response if no API key configured
-    $fallbackReplies = [
-        "Thank you for your question! To enable the AI assistant, please add your Anthropic API key to the .env file as ANTHROPIC_API_KEY. You can get a free key at https://console.anthropic.com\n\nIn the meantime, please check the Advisory Tips section for farming guidance.",
-    ];
-    echo json_encode(['success'=>true,'reply'=>$fallbackReplies[0]]);
+    // Fallback response
+    echo json_encode(['success'=>true, 'reply' => 
+        "To enable the AI assistant, please add your API key to the .env file.\n\n" .
+        "Get a FREE key at:\n" .
+        "• Google Gemini: https://aistudio.google.com/app/apikey\n" .
+        "• Groq: https://console.groq.com\n" .
+        "• OpenRouter: https://openrouter.ai/keys\n\n" .
+        "In the meantime, check the Advisory Tips section for farming guidance."
+    ]);
     exit;
 }
 
-$payload = [
-    'model'      => 'claude-sonnet-4-6',
-    'max_tokens' => 1000,
-    'system'     => $systemPrompt,
-    'messages'   => $messages,
-];
+// ── Detect provider from key prefix ────────────────────────
+$provider = 'anthropic';
+if (str_starts_with($apiKey, 'AIza')) {
+    $provider = 'gemini';
+} elseif (str_starts_with($apiKey, 'gsk_')) {
+    $provider = 'groq';
+} elseif (str_starts_with($apiKey, 'sk-or-')) {
+    $provider = 'openrouter';
+} elseif (str_starts_with($apiKey, 'sk-ant-')) {
+    $provider = 'anthropic';
+}
 
-$ch = curl_init('https://api.anthropic.com/v1/messages');
-curl_setopt_array($ch, [
-    CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_POST           => true,
-    CURLOPT_POSTFIELDS     => json_encode($payload),
-    CURLOPT_HTTPHEADER     => [
-        'Content-Type: application/json',
-        'x-api-key: '.$apiKey,
-        'anthropic-version: 2023-06-01',
-    ],
-    CURLOPT_TIMEOUT        => 30,
-]);
+// ─────────────────────────────────────────────────────────────
+// ── ROUTE TO APPROPRIATE PROVIDER ──────────────────────────
+// ─────────────────────────────────────────────────────────────
 
-$response = curl_exec($ch);
-$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-$curlErr  = curl_error($ch);
-curl_close($ch);
+$reply = '';
+$error = '';
 
-if ($curlErr) {
-    error_log('SFAS AI cURL error: '.$curlErr);
-    echo json_encode(['success'=>false,'message'=>'Could not reach AI service. Check your internet connection.']);
+switch ($provider) {
+    
+    /* ──────────────────────────────────────────────────────────
+       PROVIDER 1: Google Gemini (FREE)
+       ────────────────────────────────────────────────────────── */
+    case 'gemini':
+        $payload = [
+            'contents' => [
+                [
+                    'parts' => [
+                        ['text' => $systemPrompt . "\n\nUser: " . $message]
+                    ]
+                ]
+            ],
+            'generationConfig' => [
+                'temperature' => 0.7,
+                'maxOutputTokens' => 1000,
+            ]
+        ];
+        
+        $ch = curl_init('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' . $apiKey);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => json_encode($payload),
+            CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+            CURLOPT_TIMEOUT => 30,
+        ]);
+        
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlErr = curl_error($ch);
+        curl_close($ch);
+        
+        if ($curlErr) {
+            $error = 'Could not reach Gemini service. Check your internet connection.';
+            break;
+        }
+        
+        $data = json_decode($response, true);
+        
+        if ($httpCode !== 200) {
+            $errMsg = $data['error']['message'] ?? 'Gemini service error ('.$httpCode.')';
+            $error = $errMsg;
+            break;
+        }
+        
+        $reply = $data['candidates'][0]['content']['parts'][0]['text'] ?? '';
+        break;
+    
+    /* ──────────────────────────────────────────────────────────
+       PROVIDER 2: Groq (FREE - Fastest)
+       ────────────────────────────────────────────────────────── */
+    case 'groq':
+        // Build messages array
+        $messages = [];
+        $messages[] = ['role' => 'system', 'content' => $systemPrompt];
+        foreach ($cleanHistory as $h) {
+            $messages[] = $h;
+        }
+        $messages[] = ['role' => 'user', 'content' => $message];
+        
+        $payload = [
+            'model' => 'llama-3.1-8b-instant',
+            'messages' => $messages,
+            'temperature' => 0.7,
+            'max_tokens' => 1000,
+        ];
+        
+        $ch = curl_init('https://api.groq.com/openai/v1/chat/completions');
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => json_encode($payload),
+            CURLOPT_HTTPHEADER => [
+                'Content-Type: application/json',
+                'Authorization: Bearer ' . $apiKey,
+            ],
+            CURLOPT_TIMEOUT => 30,
+        ]);
+        
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlErr = curl_error($ch);
+        curl_close($ch);
+        
+        if ($curlErr) {
+            $error = 'Could not reach Groq service. Check your internet connection.';
+            break;
+        }
+        
+        $data = json_decode($response, true);
+        
+        if ($httpCode !== 200) {
+            $errMsg = $data['error']['message'] ?? 'Groq service error ('.$httpCode.')';
+            $error = $errMsg;
+            break;
+        }
+        
+        $reply = $data['choices'][0]['message']['content'] ?? '';
+        break;
+    
+    /* ──────────────────────────────────────────────────────────
+       PROVIDER 3: OpenRouter (FREE - Many Models)
+       ────────────────────────────────────────────────────────── */
+    case 'openrouter':
+        // Build messages array
+        $messages = [];
+        $messages[] = ['role' => 'system', 'content' => $systemPrompt];
+        foreach ($cleanHistory as $h) {
+            $messages[] = $h;
+        }
+        $messages[] = ['role' => 'user', 'content' => $message];
+        
+        $payload = [
+            'model' => 'meta-llama/llama-3.1-8b-instruct:free',
+            'messages' => $messages,
+            'temperature' => 0.7,
+            'max_tokens' => 1000,
+        ];
+        
+        $ch = curl_init('https://openrouter.ai/api/v1/chat/completions');
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => json_encode($payload),
+            CURLOPT_HTTPHEADER => [
+                'Content-Type: application/json',
+                'Authorization: Bearer ' . $apiKey,
+            ],
+            CURLOPT_TIMEOUT => 30,
+        ]);
+        
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlErr = curl_error($ch);
+        curl_close($ch);
+        
+        if ($curlErr) {
+            $error = 'Could not reach OpenRouter service. Check your internet connection.';
+            break;
+        }
+        
+        $data = json_decode($response, true);
+        
+        if ($httpCode !== 200) {
+            $errMsg = $data['error']['message'] ?? 'OpenRouter service error ('.$httpCode.')';
+            $error = $errMsg;
+            break;
+        }
+        
+        $reply = $data['choices'][0]['message']['content'] ?? '';
+        break;
+    
+    /* ──────────────────────────────────────────────────────────
+       PROVIDER 4: Anthropic Claude
+       ────────────────────────────────────────────────────────── */
+    case 'anthropic':
+    default:
+        // Build messages array for Claude
+        $messages = [];
+        foreach ($cleanHistory as $h) {
+            $messages[] = $h;
+        }
+        $messages[] = ['role' => 'user', 'content' => $message];
+        
+        $payload = [
+            'model' => 'claude-sonnet-4-6',
+            'max_tokens' => 1000,
+            'system' => $systemPrompt,
+            'messages' => $messages,
+        ];
+        
+        $ch = curl_init('https://api.anthropic.com/v1/messages');
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => json_encode($payload),
+            CURLOPT_HTTPHEADER => [
+                'Content-Type: application/json',
+                'x-api-key: ' . $apiKey,
+                'anthropic-version: 2023-06-01',
+            ],
+            CURLOPT_TIMEOUT => 30,
+        ]);
+        
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlErr = curl_error($ch);
+        curl_close($ch);
+        
+        if ($curlErr) {
+            $error = 'Could not reach Anthropic service. Check your internet connection.';
+            break;
+        }
+        
+        $data = json_decode($response, true);
+        
+        if ($httpCode !== 200) {
+            $errMsg = $data['error']['message'] ?? 'Anthropic service error ('.$httpCode.')';
+            $error = $errMsg;
+            break;
+        }
+        
+        $reply = $data['content'][0]['text'] ?? '';
+        break;
+}
+
+// ── Handle errors ───────────────────────────────────────────
+if (!empty($error)) {
+    echo json_encode(['success' => false, 'message' => $error]);
     exit;
 }
 
-$data = json_decode($response, true);
-
-if ($httpCode !== 200) {
-    $errMsg = $data['error']['message'] ?? 'AI service error ('.$httpCode.')';
-    error_log('SFAS AI API error: '.$errMsg);
-    echo json_encode(['success'=>false,'message'=>$errMsg]);
+if (empty($reply)) {
+    echo json_encode(['success' => false, 'message' => 'No response from AI. Please try again.']);
     exit;
 }
 
-$reply = $data['content'][0]['text'] ?? '';
-if (!$reply) {
-    echo json_encode(['success'=>false,'message'=>'No response from AI. Please try again.']);
-    exit;
-}
-
-// ── Optionally log to DB ───────────────────────────────────
+// ── Log to DB ──────────────────────────────────────────────
 try {
     require_once dirname(__DIR__,3).'/config/database.php';
     $db = Database::getConnection();
@@ -144,4 +335,8 @@ try {
     error_log('SFAS chat log error: '.$e->getMessage());
 }
 
-echo json_encode(['success'=>true,'reply'=>$reply]);
+echo json_encode([
+    'success' => true, 
+    'reply' => $reply, 
+    'provider' => $provider
+]);

@@ -1,0 +1,18 @@
+curl "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent" \
+  -H 'Content-Type: application/json' \
+  -H 'X-goog-api-key: AQ.Ab8RN6JsdplXqLk_ZOg0v0KyAA4VKwmpN-BhWAmEhQKk5lgX-g' \
+  -X POST \
+  -d '{
+    "contents": [
+      {
+        "parts": [
+          {
+            "text": "Explain how AI works in a few words"
+          }
+        ]
+      }
+    ]
+  }'
+
+
+  GROC "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"

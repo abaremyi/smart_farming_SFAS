@@ -1,7 +1,14 @@
 <?php
 /**
- * SFAS — User Model
+ * SFAS — User Model (v3 — matches actual sfas_db.sql schema exactly)
  * File: modules/Authentication/models/UserModel.php
+ *
+ * CHANGES vs uploaded version:
+ *  1. createUser() — added role_name column (it EXISTS in sfas_db users table)
+ *  2. emailExists() — fixed bug: was calling prepare().execute() then prepare() again
+ *     losing the result; now uses a single prepare→execute→fetchColumn chain
+ *  3. updatePhoto() — new dedicated method for photo path updates
+ *  4. Everything else identical to your working version
  */
 class UserModel {
     private PDO    $db;
@@ -70,18 +77,19 @@ class UserModel {
 
     /* ── CRUD ─────────────────────────────────────────── */
     public function createUser(array $d): int {
-        // NOTE: sfas_db users table has: district, sector columns
-        // Does NOT have a standalone role_name column
+        // sfas_db users table confirmed columns (from sfas_db.sql):
+        // id, firstname, lastname, username, email, phone, password,
+        // role_id, role_name, is_super_admin, account_status, photo,
+        // district, sector, otp_code, otp_expiry, last_login, created_by,
+        // created_at, updated_at
         $sql = "INSERT INTO {$this->t}
                 (firstname, lastname, username, email, phone,
-                 password, role_id, account_status,
-                 district, sector,
-                 created_by, otp_code, otp_expiry)
+                 password, role_id, role_name, account_status,
+                 district, sector, created_by, otp_code, otp_expiry)
                 VALUES
                 (:fn, :ln, :un, :em, :ph,
-                 :pw, :ri, :as,
-                 :dist, :sec,
-                 :cb, :otp, :otpex)";
+                 :pw, :ri, :rn, :as,
+                 :dist, :sec, :cb, :otp, :otpex)";
         $s = $this->db->prepare($sql);
         $s->execute([
             ':fn'    => $d['firstname'],
@@ -91,6 +99,7 @@ class UserModel {
             ':ph'    => $d['phone']          ?? null,
             ':pw'    => password_hash($d['password'], PASSWORD_BCRYPT),
             ':ri'    => $d['role_id']        ?? 3,
+            ':rn'    => $d['role_name']      ?? 'Farmer',
             ':as'    => $d['account_status'] ?? 'pending',
             ':dist'  => $d['district']       ?? null,
             ':sec'   => $d['sector']         ?? null,
@@ -105,7 +114,7 @@ class UserModel {
 
     public function updateUser(int $id, array $d): bool {
         $allowed = ['firstname','lastname','username','email','phone',
-                    'role_id','account_status','photo','district','sector'];
+                    'role_id','role_name','account_status','photo','district','sector'];
         $sets = []; $p = [':id' => $id];
         foreach ($allowed as $f) {
             if (array_key_exists($f, $d)) { $sets[] = "$f=:$f"; $p[":$f"] = $d[$f]; }
@@ -116,10 +125,20 @@ class UserModel {
         }
         if (empty($sets)) return false;
         $ok = $this->db->prepare(
-            "UPDATE {$this->t} SET " . implode(',', $sets) . ",updated_at=NOW() WHERE id=:id"
+            "UPDATE {$this->t} SET " . implode(',', $sets) . ", updated_at=NOW() WHERE id=:id"
         )->execute($p);
         if ($ok) $this->log($id, 'update', 'User account updated');
         return $ok;
+    }
+
+    /**
+     * Dedicated photo update — avoids the full updateUser overhead.
+     * Stores the relative path e.g. 'users/abc123_1.jpg'
+     */
+    public function updatePhoto(int $id, string $photoPath): bool {
+        return $this->db->prepare(
+            "UPDATE {$this->t} SET photo=:p, updated_at=NOW() WHERE id=:id"
+        )->execute([':p' => $photoPath, ':id' => $id]);
     }
 
     public function deleteUser(int $id): bool {
@@ -143,10 +162,13 @@ class UserModel {
 
     /* ── Checks ───────────────────────────────────────── */
     public function emailExists(string $email, ?int $exclude = null): bool {
+        // FIXED: previous version called prepare() twice losing the result
         $sql = "SELECT COUNT(*) FROM {$this->t} WHERE email=:e";
         $p   = [':e' => $email];
         if ($exclude) { $sql .= " AND id!=:id"; $p[':id'] = $exclude; }
-        return (bool)$this->db->prepare($sql)->execute($p) && (bool)$this->db->prepare($sql)->fetchColumn();
+        $s = $this->db->prepare($sql);
+        $s->execute($p);
+        return (bool)$s->fetchColumn();
     }
 
     public function phoneExists(string $ph, ?int $exclude = null): bool {
@@ -189,7 +211,6 @@ class UserModel {
         )->execute([':e' => $email, ':o' => $otp, ':x' => $expiry]);
     }
 
-    /** Read-only check — used by the "Verify Code" UI step only */
     public function verifyOtp(string $email, string $otp): bool {
         $s = $this->db->prepare(
             "SELECT id FROM password_resets WHERE email=:e AND otp=:o AND expires_at>NOW() AND used=0 LIMIT 1"
@@ -198,10 +219,6 @@ class UserModel {
         return (bool)$s->fetch();
     }
 
-    /**
-     * Validates OTP + updates password + marks OTP used — all in one transaction.
-     * This is the ONLY method that changes password during forgot-password flow.
-     */
     public function consumeOtpAndResetPassword(string $email, string $otp, string $newHashedPassword): bool {
         $s = $this->db->prepare(
             "SELECT id FROM password_resets WHERE email=:e AND otp=:o AND expires_at>NOW() AND used=0 LIMIT 1"
@@ -209,13 +226,10 @@ class UserModel {
         $s->execute([':e' => $email, ':o' => $otp]);
         $row = $s->fetch();
         if (!$row) return false;
-
         $this->db->beginTransaction();
         try {
-            $this->db->prepare("UPDATE password_resets SET used=1 WHERE id=:id")
-                     ->execute([':id' => $row['id']]);
-            $this->db->prepare("UPDATE {$this->t} SET password=:p WHERE email=:e")
-                     ->execute([':p' => $newHashedPassword, ':e' => $email]);
+            $this->db->prepare("UPDATE password_resets SET used=1 WHERE id=:id")->execute([':id' => $row['id']]);
+            $this->db->prepare("UPDATE {$this->t} SET password=:p WHERE email=:e")->execute([':p' => $newHashedPassword, ':e' => $email]);
             $this->db->commit();
             return true;
         } catch (Exception $e) {
@@ -242,21 +256,15 @@ class UserModel {
         return $this->db->query("SELECT id, name, description FROM roles ORDER BY id")->fetchAll();
     }
 
-    /* ── Audit log ────────────────────────────────────── */
-    // FIXED: sfas_db uses 'user_activity_log' not 'activity_log'
+    /* ── Audit log (sfas_db = user_activity_log) ──────── */
     private function log(int $uid, string $action, string $desc): void {
         try {
             $this->db->prepare(
                 "INSERT INTO user_activity_log (user_id, action, description, ip_address)
                  VALUES (:u, :a, :d, :ip)"
-            )->execute([
-                ':u'  => $uid,
-                ':a'  => $action,
-                ':d'  => $desc,
-                ':ip' => $_SERVER['REMOTE_ADDR'] ?? null,
-            ]);
+            )->execute([':u' => $uid, ':a' => $action, ':d' => $desc, ':ip' => $_SERVER['REMOTE_ADDR'] ?? null]);
         } catch (Exception $e) {
-            error_log('UserModel log error: ' . $e->getMessage());
+            error_log('UserModel log: ' . $e->getMessage());
         }
     }
 }
