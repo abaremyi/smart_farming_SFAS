@@ -11,7 +11,7 @@ class Database {
     public static function getConnection(): PDO {
         if (self::$connection === null) {
             $host = $_ENV['DB_HOST'] ?? 'localhost';
-            $port = $_ENV['DB_PORT'] ?? '3308';
+            $port = $_ENV['DB_PORT'] ?? '3306';
             $db   = $_ENV['DB_NAME'] ?? 'sfas_db';
             $user = $_ENV['DB_USER'] ?? 'root';
             $pass = $_ENV['DB_PASS'] ?? '';

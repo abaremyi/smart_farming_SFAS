@@ -1,13 +1,12 @@
 <?php
 /**
- * SFAS — Market Prices View (FIXED)
+ * SFAS — Market Prices View (UPDATED with Edit & Crop Management)
  * File: modules/Advisory/views/market.php
  *
- * Fixed issues:
- *  1. price_rwf input was type="number" but sent as string — API now handles both
- *  2. Table update after add is now live (no page reload)
- *  3. Filter by crop now works client-side
- *  4. Delete removes row from DOM immediately
+ * New Features:
+ *  1. Edit price records (inline editing)
+ *  2. Add new crops to the system
+ *  3. Edit existing crops
  */
 $pageTitle   = 'Market Prices';
 $currentPage = 'market';
@@ -39,11 +38,16 @@ require get_layout('admin-head');
     <h1 class="page-title">Market Prices</h1>
     <p class="page-sub">Crop prices from markets across Rwanda (RWF per kg)</p>
   </div>
-  <?php if ($isSuperAdmin || hasPermission($userPermissions,'market.manage')): ?>
-  <button class="sfas-btn sfas-btn-primary" onclick="toggleForm()">
-    <i class="ri-add-line"></i> Add Price
-  </button>
-  <?php endif; ?>
+  <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+    <?php if ($isSuperAdmin || hasPermission($userPermissions,'market.manage')): ?>
+    <button class="sfas-btn sfas-btn-primary" onclick="toggleForm()">
+      <i class="ri-add-line"></i> Add Price
+    </button>
+    <button class="sfas-btn sfas-btn-outline" onclick="toggleCropForm()">
+      <i class="ri-seedling-line"></i> Add Crop
+    </button>
+    <?php endif; ?>
+  </div>
 </div>
 
 <!-- ── ADD PRICE FORM ─────────────────────────────────── -->
@@ -147,6 +151,77 @@ require get_layout('admin-head');
 </div>
 <?php endif; ?>
 
+<!-- ── ADD/EDIT CROP FORM ─────────────────────────────────── -->
+<?php if ($isSuperAdmin || hasPermission($userPermissions,'market.manage')): ?>
+<div id="cropForm" style="display:none;margin-bottom:1.5rem">
+  <div class="sfas-card">
+    <div class="sfas-card-header">
+      <span class="sfas-card-title"><i class="ri-seedling-line"></i> <span id="cropFormTitle">Add New Crop</span></span>
+      <button class="sfas-btn sfas-btn-ghost sfas-btn-sm" onclick="toggleCropForm()">
+        <i class="ri-close-line"></i> Cancel
+      </button>
+    </div>
+    <div class="sfas-card-body">
+
+      <div id="cropFormAlert" style="display:none"></div>
+      <input type="hidden" id="editCropId" value="">
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.85rem">
+
+        <div class="sfas-form-group">
+          <label class="sfas-label">Crop Name (English) <span class="req">*</span></label>
+          <input type="text" id="cropName" class="sfas-input" placeholder="e.g. Maize">
+        </div>
+
+        <div class="sfas-form-group">
+          <label class="sfas-label">Local Name (Kinyarwanda) <span class="req">*</span></label>
+          <input type="text" id="cropLocalName" class="sfas-input" placeholder="e.g. Ibigori">
+        </div>
+
+        <div class="sfas-form-group">
+          <label class="sfas-label">Category <span class="req">*</span></label>
+          <select id="cropCategory" class="sfas-select">
+            <option value="">— Select —</option>
+            <?php foreach(['Cereal','Legume','Vegetable','Fruit','Root','Cash Crop','Forage'] as $cat): ?>
+            <option value="<?= $cat ?>"><?= $cat ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+
+        <div class="sfas-form-group">
+          <label class="sfas-label">Growing Season</label>
+          <input type="text" id="cropSeason" class="sfas-input" placeholder="e.g. Season A & B">
+        </div>
+
+        <div class="sfas-form-group">
+          <label class="sfas-label">Min Rainfall (mm)</label>
+          <input type="number" id="cropMinRain" class="sfas-input" placeholder="e.g. 500">
+        </div>
+
+        <div class="sfas-form-group">
+          <label class="sfas-label">Max Rainfall (mm)</label>
+          <input type="number" id="cropMaxRain" class="sfas-input" placeholder="e.g. 800">
+        </div>
+
+      </div>
+
+      <div class="sfas-form-group">
+        <label class="sfas-label">Description</label>
+        <textarea id="cropDescription" class="sfas-textarea" rows="2" placeholder="Brief description of the crop…"></textarea>
+      </div>
+
+      <div style="display:flex;gap:.6rem">
+        <button class="sfas-btn sfas-btn-primary" id="saveCropBtn" onclick="saveCrop()">
+          <i class="ri-save-line"></i> <span id="cropBtnText">Add Crop</span>
+        </button>
+        <button class="sfas-btn sfas-btn-ghost" onclick="toggleCropForm()">Cancel</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+<?php endif; ?>
+
 <!-- ── LATEST PRICE SUMMARY CARDS ───────────────────────── -->
 <?php if (!empty($latestByCrop)): ?>
 <div style="margin-bottom:1.5rem">
@@ -191,7 +266,6 @@ require get_layout('admin-head');
         (<?= count($prices) ?>)
       </span>
     </span>
-    <!-- Filter -->
     <div style="display:flex;gap:.5rem;align-items:center">
       <select id="cropFilter" class="sfas-select" style="width:160px;font-size:.8rem" onchange="filterPrices()">
         <option value="">All Crops</option>
@@ -214,7 +288,7 @@ require get_layout('admin-head');
           <th>Date</th>
           <th>Source</th>
           <?php if ($isSuperAdmin || hasPermission($userPermissions,'market.manage')): ?>
-          <th style="width:60px"></th>
+          <th style="width:100px">Actions</th>
           <?php endif; ?>
         </tr>
       </thead>
@@ -241,7 +315,7 @@ require get_layout('admin-head');
           <td><?= htmlspecialchars($p['market']) ?></td>
           <td><?= htmlspecialchars($p['district'] ?? '—') ?></td>
           <td style="text-align:right;font-family:'JetBrains Mono',monospace;
-              font-weight:700;color:var(--green-700)">
+              font-weight:700;color:var(--green-700)" class="price-value" data-id="<?= $p['id'] ?>">
             <?= number_format((float)$p['price_rwf'], 0) ?>
           </td>
           <td style="color:var(--text-muted)"><?= htmlspecialchars($p['unit']) ?></td>
@@ -249,10 +323,16 @@ require get_layout('admin-head');
           <td><span class="sfas-badge badge-slate" style="font-size:.68rem"><?= htmlspecialchars($p['source']) ?></span></td>
           <?php if ($isSuperAdmin || hasPermission($userPermissions,'market.manage')): ?>
           <td>
-            <button class="sfas-btn sfas-btn-danger sfas-btn-sm"
-              onclick="deletePrice(<?= (int)$p['id'] ?>)" title="Delete">
-              <i class="ri-delete-bin-line"></i>
-            </button>
+            <div style="display:flex;gap:.3rem">
+              <button class="sfas-btn sfas-btn-outline sfas-btn-sm" 
+                onclick="editPrice(<?= (int)$p['id'] ?>)" title="Edit">
+                <i class="ri-edit-line"></i>
+              </button>
+              <button class="sfas-btn sfas-btn-danger sfas-btn-sm"
+                onclick="deletePrice(<?= (int)$p['id'] ?>)" title="Delete">
+                <i class="ri-delete-bin-line"></i>
+              </button>
+            </div>
           </td>
           <?php endif; ?>
         </tr>
@@ -260,6 +340,76 @@ require get_layout('admin-head');
         <?php endif; ?>
       </tbody>
     </table>
+  </div>
+</div>
+
+<!-- Edit Price Modal -->
+<div id="editPriceModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;">
+  <div class="sfas-card" style="max-width:500px;width:90%;margin:auto;max-height:90vh;overflow-y:auto;">
+    <div class="sfas-card-header">
+      <span class="sfas-card-title"><i class="ri-edit-line"></i> Edit Price</span>
+      <button class="sfas-btn sfas-btn-ghost sfas-btn-sm" onclick="closeEditModal()">
+        <i class="ri-close-line"></i>
+      </button>
+    </div>
+    <div class="sfas-card-body">
+      <div id="editFormAlert" style="display:none"></div>
+      <input type="hidden" id="editPriceId">
+      
+      <div class="sfas-form-group">
+        <label class="sfas-label">Price (RWF) <span class="req">*</span></label>
+        <input type="number" id="editPriceValue" class="sfas-input" step="1" min="0">
+      </div>
+      
+      <div class="sfas-form-group">
+        <label class="sfas-label">Market</label>
+        <input type="text" id="editMarket" class="sfas-input">
+      </div>
+      
+      <div class="sfas-form-group">
+        <label class="sfas-label">District</label>
+        <select id="editDistrict" class="sfas-select">
+          <option value="">— Select —</option>
+          <?php foreach(['Nyagatare','Gatsibo','Kayonza','Kirehe','Ngoma','Rwamagana','Musanze','Huye','Kigali','Rubavu','Karongi','Muhanga'] as $d): ?>
+          <option value="<?= $d ?>"><?= $d ?></option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+      
+      <div class="sfas-form-group">
+        <label class="sfas-label">Unit</label>
+        <select id="editUnit" class="sfas-select">
+          <option value="kg">per kg</option>
+          <option value="tonne">per tonne</option>
+          <option value="bag (50kg)">per bag (50kg)</option>
+          <option value="crate">per crate</option>
+          <option value="bunch">per bunch</option>
+        </select>
+      </div>
+      
+      <div class="sfas-form-group">
+        <label class="sfas-label">Price Date</label>
+        <input type="date" id="editDate" class="sfas-input">
+      </div>
+      
+      <div class="sfas-form-group">
+        <label class="sfas-label">Source</label>
+        <select id="editSource" class="sfas-select">
+          <option value="Field Survey">Field Survey</option>
+          <option value="REMA Data">REMA Data</option>
+          <option value="MINAGRI">MINAGRI</option>
+          <option value="Trader Interview">Trader Interview</option>
+          <option value="Market Observation">Market Observation</option>
+        </select>
+      </div>
+      
+      <div style="display:flex;gap:.6rem">
+        <button class="sfas-btn sfas-btn-primary" id="updatePriceBtn" onclick="updatePrice()">
+          <i class="ri-save-line"></i> Update Price
+        </button>
+        <button class="sfas-btn sfas-btn-ghost" onclick="closeEditModal()">Cancel</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -277,6 +427,107 @@ function toggleForm() {
   }
 }
 
+/* ── Toggle crop form ──────────────────────────────────── */
+function toggleCropForm(cropData) {
+  var f = document.getElementById('cropForm');
+  if (cropData) {
+    // Edit mode
+    document.getElementById('cropFormTitle').textContent = 'Edit Crop';
+    document.getElementById('cropBtnText').textContent = 'Update Crop';
+    document.getElementById('editCropId').value = cropData.id;
+    document.getElementById('cropName').value = cropData.name || '';
+    document.getElementById('cropLocalName').value = cropData.local_name || '';
+    document.getElementById('cropCategory').value = cropData.category || '';
+    document.getElementById('cropSeason').value = cropData.growing_season || '';
+    document.getElementById('cropMinRain').value = cropData.min_rainfall_mm || '';
+    document.getElementById('cropMaxRain').value = cropData.max_rainfall_mm || '';
+    document.getElementById('cropDescription').value = cropData.description || '';
+    f.style.display = 'block';
+  } else {
+    // Add mode
+    document.getElementById('cropFormTitle').textContent = 'Add New Crop';
+    document.getElementById('cropBtnText').textContent = 'Add Crop';
+    document.getElementById('editCropId').value = '';
+    document.getElementById('cropName').value = '';
+    document.getElementById('cropLocalName').value = '';
+    document.getElementById('cropCategory').value = '';
+    document.getElementById('cropSeason').value = '';
+    document.getElementById('cropMinRain').value = '';
+    document.getElementById('cropMaxRain').value = '';
+    document.getElementById('cropDescription').value = '';
+    f.style.display = f.style.display==='none' ? 'block' : 'none';
+  }
+  if (f.style.display==='block') {
+    document.getElementById('cropFormAlert').style.display='none';
+    document.getElementById('cropName').focus();
+  }
+}
+
+/* ── Save crop ───────────────────────────────────────── */
+async function saveCrop() {
+  var alertEl = document.getElementById('cropFormAlert');
+  alertEl.style.display='none';
+  
+  var id = document.getElementById('editCropId').value;
+  var name = document.getElementById('cropName').value.trim();
+  var localName = document.getElementById('cropLocalName').value.trim();
+  var category = document.getElementById('cropCategory').value;
+  var season = document.getElementById('cropSeason').value.trim();
+  var minRain = document.getElementById('cropMinRain').value;
+  var maxRain = document.getElementById('cropMaxRain').value;
+  var description = document.getElementById('cropDescription').value.trim();
+  
+  if (!name) {
+    alertEl.innerHTML='<div class="sfas-alert alert-danger"><i class="ri-error-warning-line"></i><span>Crop name is required.</span></div>';
+    alertEl.style.display='block'; return;
+  }
+  if (!localName) {
+    alertEl.innerHTML='<div class="sfas-alert alert-danger"><i class="ri-error-warning-line"></i><span>Local name is required.</span></div>';
+    alertEl.style.display='block'; return;
+  }
+  if (!category) {
+    alertEl.innerHTML='<div class="sfas-alert alert-danger"><i class="ri-error-warning-line"></i><span>Category is required.</span></div>';
+    alertEl.style.display='block'; return;
+  }
+  
+  var btn = document.getElementById('saveCropBtn');
+  btn.disabled=true; btn.innerHTML='<span class="sfas-spinner"></span> Saving…';
+  
+  var action = id ? 'update-crop' : 'create-crop';
+  var body = {
+    name: name,
+    local_name: localName,
+    category: category,
+    growing_season: season || null,
+    min_rainfall_mm: minRain || null,
+    max_rainfall_mm: maxRain || null,
+    description: description || null
+  };
+  if (id) body.id = id;
+  
+  try {
+    var r = await fetch(B+'/api/market?action='+action, {
+      method: 'POST', credentials: 'include',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(body)
+    });
+    var d = await r.json();
+    
+    if (d.success) {
+      alertEl.innerHTML='<div class="sfas-alert alert-success"><i class="ri-check-circle-line"></i><span>'+d.message+'</span></div>';
+      alertEl.style.display='block';
+      setTimeout(function(){ location.reload(); }, 1500);
+    } else {
+      alertEl.innerHTML='<div class="sfas-alert alert-danger"><i class="ri-error-warning-line"></i><span>'+d.message+'</span></div>';
+      alertEl.style.display='block';
+    }
+  } catch(err) {
+    alertEl.innerHTML='<div class="sfas-alert alert-danger"><i class="ri-error-warning-line"></i><span>Network error.</span></div>';
+    alertEl.style.display='block';
+  }
+  btn.disabled=false; btn.innerHTML='<i class="ri-save-line"></i> '+document.getElementById('cropBtnText').textContent;
+}
+
 /* ── Save price ───────────────────────────────────────── */
 async function savePrice() {
   var alertEl = document.getElementById('addFormAlert');
@@ -290,7 +541,6 @@ async function savePrice() {
   var price_date= document.getElementById('fDate').value;
   var source    = document.getElementById('fSource').value;
 
-  // Client-side validation
   if (!crop_id) {
     alertEl.innerHTML='<div class="sfas-alert alert-danger"><i class="ri-error-warning-line"></i><span>Please select a crop.</span></div>';
     alertEl.style.display='block'; return;
@@ -324,16 +574,14 @@ async function savePrice() {
     var d = await r.json();
 
     if (d.success) {
-      // Remove empty-state row if present
       var emptyRow = document.getElementById('emptyRow');
       if (emptyRow) emptyRow.remove();
 
-      // Inject new row at TOP of table without page reload
       if (d.row) {
         var tbody = document.getElementById('pricesTableBody');
         var row   = d.row;
         var localName = row.local_name ? '<div style="font-size:.72rem;color:var(--green-600)">' + esc(row.local_name) + '</div>' : '';
-        var delBtn = canMgr ? '<td><button class="sfas-btn sfas-btn-danger sfas-btn-sm" onclick="deletePrice(' + row.id + ')" title="Delete"><i class="ri-delete-bin-line"></i></button></td>' : '';
+        var actions = canMgr ? '<td><div style="display:flex;gap:.3rem"><button class="sfas-btn sfas-btn-outline sfas-btn-sm" onclick="editPrice(' + row.id + ')" title="Edit"><i class="ri-edit-line"></i></button><button class="sfas-btn sfas-btn-danger sfas-btn-sm" onclick="deletePrice(' + row.id + ')" title="Delete"><i class="ri-delete-bin-line"></i></button></div></td>' : '';
         var tr = document.createElement('tr');
         tr.id = 'priceRow' + row.id;
         tr.setAttribute('data-crop-id', row.crop_id);
@@ -341,15 +589,14 @@ async function savePrice() {
           '<td><div style="font-weight:600">' + esc(row.crop_name) + '</div>' + localName + '</td>' +
           '<td>' + esc(row.market) + '</td>' +
           '<td>' + esc(row.district || '—') + '</td>' +
-          '<td style="text-align:right;font-family:\'JetBrains Mono\',monospace;font-weight:700;color:var(--green-700)">' +
+          '<td style="text-align:right;font-family:\'JetBrains Mono\',monospace;font-weight:700;color:var(--green-700)" class="price-value" data-id="' + row.id + '">' +
             parseInt(row.price_rwf).toLocaleString() + '</td>' +
           '<td style="color:var(--text-muted)">' + esc(row.unit) + '</td>' +
           '<td style="color:var(--text-muted)">' + formatDate(row.price_date) + '</td>' +
           '<td><span class="sfas-badge badge-slate" style="font-size:.68rem">' + esc(row.source) + '</span></td>' +
-          delBtn;
+          actions;
         tbody.insertBefore(tr, tbody.firstChild);
 
-        // Update count
         var countEl = document.getElementById('priceCount');
         if (countEl) {
           var cur = parseInt(countEl.textContent.replace(/\D/g,'')) || 0;
@@ -357,13 +604,11 @@ async function savePrice() {
         }
       }
 
-      // Reset form fields
       document.getElementById('fCropId').value  = '';
       document.getElementById('fMarket').value  = '';
       document.getElementById('fPrice').value   = '';
       document.getElementById('fDistrict').value= '';
 
-      // Show brief success in form
       alertEl.innerHTML='<div class="sfas-alert alert-success"><i class="ri-check-circle-line"></i><span>' + d.message + '</span></div>';
       alertEl.style.display='block';
       setTimeout(function(){ alertEl.style.display='none'; }, 3000);
@@ -377,6 +622,97 @@ async function savePrice() {
     alertEl.style.display='block';
   }
   btn.disabled=false; btn.innerHTML='<i class="ri-save-line"></i> Save Price Record';
+}
+
+/* ── Edit price ──────────────────────────────────────── */
+function editPrice(id) {
+  var row = document.getElementById('priceRow' + id);
+  if (!row) return;
+  
+  // Get current values from the row
+  var priceCell = row.querySelector('.price-value');
+  var market = row.cells[1].textContent.trim();
+  var district = row.cells[2].textContent.trim();
+  var unit = row.cells[4].textContent.trim();
+  var dateStr = row.cells[5].textContent.trim();
+  var source = row.cells[6].textContent.trim();
+  var price = priceCell.textContent.replace(/,/g, '');
+  
+  document.getElementById('editPriceId').value = id;
+  document.getElementById('editPriceValue').value = price;
+  document.getElementById('editMarket').value = market;
+  document.getElementById('editDistrict').value = district === '—' ? '' : district;
+  document.getElementById('editUnit').value = unit;
+  document.getElementById('editDate').value = formatDateForInput(dateStr);
+  document.getElementById('editSource').value = source;
+  
+  document.getElementById('editPriceModal').style.display = 'flex';
+  document.getElementById('editFormAlert').style.display = 'none';
+}
+
+function closeEditModal() {
+  document.getElementById('editPriceModal').style.display = 'none';
+}
+
+/* ── Update price ────────────────────────────────────── */
+async function updatePrice() {
+  var alertEl = document.getElementById('editFormAlert');
+  alertEl.style.display='none';
+  
+  var id = document.getElementById('editPriceId').value;
+  var price_rwf = document.getElementById('editPriceValue').value.trim();
+  var market = document.getElementById('editMarket').value.trim();
+  var district = document.getElementById('editDistrict').value;
+  var unit = document.getElementById('editUnit').value;
+  var price_date = document.getElementById('editDate').value;
+  var source = document.getElementById('editSource').value;
+  
+  if (!price_rwf || isNaN(parseFloat(price_rwf)) || parseFloat(price_rwf) < 0) {
+    alertEl.innerHTML='<div class="sfas-alert alert-danger"><i class="ri-error-warning-line"></i><span>Please enter a valid price.</span></div>';
+    alertEl.style.display='block'; return;
+  }
+  
+  var btn = document.getElementById('updatePriceBtn');
+  btn.disabled=true; btn.innerHTML='<span class="sfas-spinner"></span> Updating…';
+  
+  try {
+    var r = await fetch(B+'/api/market?action=update', {
+      method: 'POST', credentials: 'include',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        id: parseInt(id),
+        price_rwf: parseFloat(price_rwf),
+        market: market,
+        district: district || null,
+        unit: unit,
+        price_date: price_date,
+        source: source
+      })
+    });
+    var d = await r.json();
+    
+    if (d.success) {
+      // Update the row in the table
+      var row = document.getElementById('priceRow' + id);
+      if (row) {
+        row.cells[1].textContent = market;
+        row.cells[2].textContent = district || '—';
+        row.querySelector('.price-value').textContent = parseFloat(price_rwf).toLocaleString();
+        row.cells[4].textContent = unit;
+        row.cells[5].textContent = formatDate(price_date);
+        row.cells[6].innerHTML = '<span class="sfas-badge badge-slate" style="font-size:.68rem">' + esc(source) + '</span>';
+      }
+      closeEditModal();
+      mgSuccess('Updated!', 'Price record updated successfully');
+    } else {
+      alertEl.innerHTML='<div class="sfas-alert alert-danger"><i class="ri-error-warning-line"></i><span>' + (d.message||'Update failed') + '</span></div>';
+      alertEl.style.display='block';
+    }
+  } catch(err) {
+    alertEl.innerHTML='<div class="sfas-alert alert-danger"><i class="ri-error-warning-line"></i><span>Network error.</span></div>';
+    alertEl.style.display='block';
+  }
+  btn.disabled=false; btn.innerHTML='<i class="ri-save-line"></i> Update Price';
 }
 
 /* ── Delete price ─────────────────────────────────────── */
@@ -422,6 +758,18 @@ function formatDate(d) {
   if (!d) return '—';
   var dt = new Date(d + 'T00:00:00');
   return dt.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+}
+function formatDateForInput(d) {
+  if (!d || d === '—') return '';
+  var parts = d.split(' ');
+  var months = {'Jan':'01','Feb':'02','Mar':'03','Apr':'04','May':'05','Jun':'06','Jul':'07','Aug':'08','Sep':'09','Oct':'10','Nov':'11','Dec':'12'};
+  var day = parts[0];
+  var month = months[parts[1]];
+  var year = parts[2];
+  if (day && month && year) {
+    return year + '-' + month + '-' + String(day).padStart(2,'0');
+  }
+  return '';
 }
 </script>
 

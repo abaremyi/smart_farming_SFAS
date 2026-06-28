@@ -1,6 +1,6 @@
 <?php
 /**
- * SFAS — Advisory Model
+ * SFAS — Advisory Model (COMPLETE)
  * File: modules/Advisory/models/AdvisoryModel.php
  */
 class AdvisoryModel {
@@ -152,6 +152,17 @@ class AdvisoryModel {
         )->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    public function getPriceById(int $id): ?array {
+        $stmt = $this->db->prepare(
+            "SELECT mp.*, c.name AS crop_name, c.local_name
+             FROM market_prices mp
+             JOIN crops c ON c.id=mp.crop_id
+             WHERE mp.id=:id LIMIT 1"
+        );
+        $stmt->execute([':id' => $id]);
+        return $stmt->fetch() ?: null;
+    }
+
     public function addPrice(array $d): int {
         $stmt = $this->db->prepare(
             "INSERT INTO market_prices (crop_id,market,district,price_rwf,unit,price_date,source,updated_by)
@@ -170,8 +181,80 @@ class AdvisoryModel {
         return (int)$this->db->lastInsertId();
     }
 
+    public function updatePrice(int $id, array $d): bool {
+        $allowed = ['market','district','price_rwf','unit','price_date','source','updated_by'];
+        $sets = []; $p = [':id' => $id];
+        foreach ($allowed as $col) {
+            if (array_key_exists($col, $d)) { 
+                $sets[] = "$col=:$col"; 
+                $p[":$col"] = $d[$col]; 
+            }
+        }
+        if (empty($sets)) return false;
+        return $this->db->prepare(
+            "UPDATE market_prices SET ".implode(',',$sets)." WHERE id=:id"
+        )->execute($p);
+    }
+
     public function deletePrice(int $id): bool {
         return $this->db->prepare("DELETE FROM market_prices WHERE id=:id")->execute([':id'=>$id]);
+    }
+
+    /* ── CROP MANAGEMENT ─────────────────────────────────── */
+
+    public function createCrop(array $d): int {
+        $stmt = $this->db->prepare(
+            "INSERT INTO crops (name, local_name, category, growing_season, min_rainfall_mm, max_rainfall_mm, description)
+             VALUES (:name, :local_name, :category, :season, :min_rain, :max_rain, :desc)"
+        );
+        $stmt->execute([
+            ':name'       => $d['name'],
+            ':local_name' => $d['local_name'],
+            ':category'   => $d['category'],
+            ':season'     => $d['growing_season'] ?? null,
+            ':min_rain'   => $d['min_rainfall_mm'] ?? null,
+            ':max_rain'   => $d['max_rainfall_mm'] ?? null,
+            ':desc'       => $d['description'] ?? null,
+        ]);
+        return (int)$this->db->lastInsertId();
+    }
+
+    public function updateCrop(int $id, array $d): bool {
+        $allowed = ['name','local_name','category','growing_season','min_rainfall_mm','max_rainfall_mm','description'];
+        $sets = []; $p = [':id' => $id];
+        foreach ($allowed as $col) {
+            if (array_key_exists($col, $d)) { 
+                $sets[] = "$col=:$col"; 
+                $p[":$col"] = $d[$col]; 
+            }
+        }
+        if (empty($sets)) return false;
+        return $this->db->prepare(
+            "UPDATE crops SET ".implode(',',$sets)." WHERE id=:id"
+        )->execute($p);
+    }
+
+    public function deleteCrop(int $id): bool {
+        // First check if crop is used in any market prices, farm_crops, or advisory_tips
+        $check = $this->db->prepare(
+            "SELECT (SELECT COUNT(*) FROM market_prices WHERE crop_id=:id) as prices,
+                    (SELECT COUNT(*) FROM farm_crops WHERE crop_id=:id) as farms,
+                    (SELECT COUNT(*) FROM advisory_tips WHERE crop_id=:id) as tips"
+        );
+        $check->execute([':id' => $id]);
+        $usage = $check->fetch(PDO::FETCH_ASSOC);
+        
+        if ($usage['prices'] > 0 || $usage['farms'] > 0 || $usage['tips'] > 0) {
+            return false; // Cannot delete crop that is in use
+        }
+        
+        return $this->db->prepare("DELETE FROM crops WHERE id=:id")->execute([':id'=>$id]);
+    }
+
+    public function getCropById(int $id): ?array {
+        $stmt = $this->db->prepare("SELECT * FROM crops WHERE id=:id LIMIT 1");
+        $stmt->execute([':id' => $id]);
+        return $stmt->fetch() ?: null;
     }
 
     /* ── STATS ───────────────────────────────────────────── */
@@ -186,7 +269,7 @@ class AdvisoryModel {
     }
 
     public function getAllCrops(): array {
-        return $this->db->query("SELECT id,name,local_name FROM crops ORDER BY name")->fetchAll(PDO::FETCH_ASSOC);
+        return $this->db->query("SELECT id,name,local_name,category FROM crops ORDER BY name")->fetchAll(PDO::FETCH_ASSOC);
     }
 
     /* ── REPORTS DATA ────────────────────────────────────── */

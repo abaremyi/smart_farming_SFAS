@@ -1,6 +1,6 @@
 <?php
 /**
- * SFAS — Advisory Controller
+ * SFAS — Advisory Controller (COMPLETE)
  * File: modules/Advisory/controllers/AdvisoryController.php
  */
 require_once dirname(__DIR__,3).'/config/database.php';
@@ -94,12 +94,51 @@ class AdvisoryController {
         if (empty($d['price_rwf'])) return ['success'=>false,'message'=>'Price is required'];
         $d['updated_by'] = $userId;
         $id = $this->m->addPrice($d);
-        return ['success'=>true,'message'=>'Price recorded','id'=>$id];
+        
+        // Get the newly created row for client-side update
+        $row = $this->m->getPriceById($id);
+        return ['success'=>true,'message'=>'Price recorded','id'=>$id, 'row'=>$row];
+    }
+
+    public function updatePrice(int $id, array $d, int $userId): array {
+        $price = $this->m->getPriceById($id);
+        if (!$price) return ['success'=>false,'message'=>'Price record not found'];
+        $d['updated_by'] = $userId;
+        $this->m->updatePrice($id, $d);
+        return ['success'=>true,'message'=>'Price updated successfully'];
     }
 
     public function deletePrice(int $id): array {
         $this->m->deletePrice($id);
         return ['success'=>true,'message'=>'Price record deleted'];
+    }
+
+    /* ── CROP MANAGEMENT ─────────────────────────────────── */
+
+    public function createCrop(array $d): array {
+        if (empty($d['name']))       return ['success'=>false,'message'=>'Crop name is required'];
+        if (empty($d['local_name'])) return ['success'=>false,'message'=>'Local name is required'];
+        if (empty($d['category']))   return ['success'=>false,'message'=>'Category is required'];
+        $id = $this->m->createCrop($d);
+        return ['success'=>true,'message'=>'Crop added successfully','id'=>$id];
+    }
+
+    public function updateCrop(int $id, array $d): array {
+        $crop = $this->m->getCropById($id);
+        if (!$crop) return ['success'=>false,'message'=>'Crop not found'];
+        $this->m->updateCrop($id, $d);
+        return ['success'=>true,'message'=>'Crop updated successfully'];
+    }
+
+    public function deleteCrop(int $id): array {
+        $crop = $this->m->getCropById($id);
+        if (!$crop) return ['success'=>false,'message'=>'Crop not found'];
+        $this->m->deleteCrop($id);
+        return ['success'=>true,'message'=>'Crop deleted successfully'];
+    }
+
+    public function crops(): array {
+        return ['success'=>true,'data'=>$this->m->getAllCrops()];
     }
 
     /* ── REPORTS ─────────────────────────────────────────── */
@@ -114,9 +153,5 @@ class AdvisoryController {
 
     public function reportAlertsBySeverity(): array {
         return ['success'=>true,'data'=>$this->m->getAlertsBySeverity()];
-    }
-
-    public function crops(): array {
-        return ['success'=>true,'data'=>$this->m->getAllCrops()];
     }
 }

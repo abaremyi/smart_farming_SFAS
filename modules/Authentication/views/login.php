@@ -310,7 +310,7 @@ body::after{
       </div>
 
       <div class="demo-box">
-        <strong>Demo:</strong> admin@sfas.rw &nbsp;/&nbsp; Admin@1234
+        <strong>Demo:</strong> umurerwadaniella0@gmail.com &nbsp;/&nbsp; Admin@1234
       </div>
 
     </div><!-- /panelLogin -->

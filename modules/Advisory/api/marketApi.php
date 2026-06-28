@@ -1,6 +1,6 @@
 <?php
 /**
- * SFAS — Market Prices API
+ * SFAS — Market Prices API (COMPLETE with all actions)
  * File: modules/Advisory/api/marketApi.php
  */
 header('Content-Type: application/json');
@@ -25,17 +25,79 @@ $input = array_merge($_GET,$input);
 $ctrl = new AdvisoryController();
 
 switch ($action) {
+    // ── Price Management ──────────────────────────────
     case 'list':
-        echo json_encode($ctrl->listPrices($input)); break;
+        echo json_encode($ctrl->listPrices($input)); 
+        break;
+        
     case 'latest':
-        echo json_encode($ctrl->latestPrices()); break;
+        echo json_encode($ctrl->latestPrices()); 
+        break;
+        
     case 'add':
-        if($method!=='POST'){http_response_code(405);echo json_encode(['success'=>false,'message'=>'POST required']);break;}
-        echo json_encode($ctrl->addPrice($input,(int)$user->user_id)); break;
+        if($method!=='POST') {
+            http_response_code(405);
+            echo json_encode(['success'=>false,'message'=>'POST required']);
+            break;
+        }
+        echo json_encode($ctrl->addPrice($input,(int)$user->user_id)); 
+        break;
+        
+    case 'update':
+        if($method!=='POST') {
+            http_response_code(405);
+            echo json_encode(['success'=>false,'message'=>'POST required']);
+            break;
+        }
+        $auth->requireAuth(['market.manage']);
+        echo json_encode($ctrl->updatePrice((int)($input['id']??0), $input, (int)$user->user_id)); 
+        break;
+        
     case 'delete':
-        if($method!=='POST'){http_response_code(405);echo json_encode(['success'=>false,'message'=>'POST required']);break;}
-        echo json_encode($ctrl->deletePrice((int)($input['id']??0))); break;
+        if($method!=='POST') {
+            http_response_code(405);
+            echo json_encode(['success'=>false,'message'=>'POST required']);
+            break;
+        }
+        echo json_encode($ctrl->deletePrice((int)($input['id']??0))); 
+        break;
+
+    // ── Crop Management ────────────────────────────────
+    case 'create-crop':
+        if($method!=='POST') {
+            http_response_code(405);
+            echo json_encode(['success'=>false,'message'=>'POST required']);
+            break;
+        }
+        $auth->requireAuth(['market.manage']);
+        echo json_encode($ctrl->createCrop($input)); 
+        break;
+        
+    case 'update-crop':
+        if($method!=='POST') {
+            http_response_code(405);
+            echo json_encode(['success'=>false,'message'=>'POST required']);
+            break;
+        }
+        $auth->requireAuth(['market.manage']);
+        echo json_encode($ctrl->updateCrop((int)($input['id']??0), $input)); 
+        break;
+        
+    case 'delete-crop':
+        if($method!=='POST') {
+            http_response_code(405);
+            echo json_encode(['success'=>false,'message'=>'POST required']);
+            break;
+        }
+        $auth->requireAuth(['market.manage']);
+        echo json_encode($ctrl->deleteCrop((int)($input['id']??0))); 
+        break;
+
+    case 'crops':
+        echo json_encode($ctrl->crops()); 
+        break;
+
     default:
         http_response_code(404);
-        echo json_encode(['success'=>false,'message'=>'Unknown action']);
+        echo json_encode(['success'=>false,'message'=>'Unknown action: '.htmlspecialchars($action)]);
 }
