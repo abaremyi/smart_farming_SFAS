@@ -57,6 +57,13 @@ $navItems = [
     'perm'  => 'ai.use',
   ],
   [
+    'label' => 'IoT',
+    'url'   => url('admin/iot-dashboard'),
+    'icon'  => 'ri-device-line',
+    'page'  => 'iot',
+    'perm'  => 'iot.view',
+  ],
+  [
     'label' => 'Weather',
     'url'   => url('admin/weather'),
     'icon'  => 'ri-cloud-windy-line',

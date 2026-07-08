@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS `advisory_tips` (
   KEY `fk_at_author` (`author_id`),
   CONSTRAINT `fk_at_author` FOREIGN KEY (`author_id`) REFERENCES `users` (`id`) ON DELETE SET NULL,
   CONSTRAINT `fk_at_crop` FOREIGN KEY (`crop_id`) REFERENCES `crops` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Dumping data for table sfas_db.advisory_tips: ~5 rows (approximately)
 REPLACE INTO `advisory_tips` (`id`, `title`, `content`, `category`, `crop_id`, `season`, `district`, `author_id`, `is_active`, `views`, `created_at`, `updated_at`) VALUES
@@ -63,9 +63,9 @@ CREATE TABLE IF NOT EXISTS `ai_chat_logs` (
   KEY `idx_chat_user` (`user_id`),
   KEY `idx_chat_session` (`session_id`),
   CONSTRAINT `fk_chat_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=31 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Dumping data for table sfas_db.ai_chat_logs: ~1 rows (approximately)
+-- Dumping data for table sfas_db.ai_chat_logs: ~11 rows (approximately)
 REPLACE INTO `ai_chat_logs` (`id`, `user_id`, `session_id`, `role`, `message`, `created_at`) VALUES
 	(1, 1, 'f570260cdbea5a7d6c1fea50652b6d56', 'user', 'Reply with exactly one sentence: "SFAS AI is working correctly!"', '2026-06-28 10:44:47'),
 	(21, 1, 'd82ed362c1dc77b19c4165a95b383242', 'user', 'How do I store maize long-term?', '2026-06-28 12:26:39'),
@@ -75,7 +75,9 @@ REPLACE INTO `ai_chat_logs` (`id`, `user_id`, `session_id`, `role`, `message`, `
 	(25, 1, '24d93cf39ab878dfd8b78f1ee2eb0e1b', 'user', 'should I plant apples in July', '2026-06-28 12:28:00'),
 	(26, 1, '24d93cf39ab878dfd8b78f1ee2eb0e1b', 'assistant', 'Mwaramutse!\n\nPlanting apples in July might not be the best option for you in Nyagatare District, Rwanda. Here\'s why:\n\n1. **Season B is in full swing**: July is still part of Season B (March–August), and the weather is usually hot and dry. Apple trees require a certain amount of chill hours (periods of cool temperatures) to break dormancy and produce fruit.\n2. **Apple trees may not thrive in Rwanda\'s climate**: Apple trees are typically more suited to temperate climates with cooler winters and cooler summers. Rwanda\'s climate is generally warmer, which might affect the tree\'s growth and fruit production.\n3. **Soil and water requirements**: Apple trees require well-draining soil and consistent moisture. In Rwanda, the soil can be challenging, and water availability might be limited during the dry season.\n\nConsidering these factors, I would advise against planting apples in July. Instead, you may want to explore other fruit options that are more suitable for Rwanda\'s climate and growing conditions.\n\nIf you\'re interested in planting fruit trees, some alternatives that might do well in Rwanda include:\n\n* Mangoes (already widely grown in Rwanda)\n* Papayas\n* Passionfruits\n* Guavas\n* Citrus fruits like oranges or lemons\n\nThese fruit trees are generally more adaptable to Rwanda\'s climate and can thrive in the local soil conditions.\n\nWould you like some guidance on planting these alternatives or have any specific questions about them?', '2026-06-28 12:28:00'),
 	(27, 1, 'ccd6595726128f7c4c1f42115afe7a4e', 'user', 'You are a Rwandan agricultural expert. Improve and expand this advisory tip for farmers:\nTitle: Apple Planting Best Practise\nCategory: Crop Management\nContent: (empty — generate based on title)\n\nWrite a complete, detailed, practical advisory tip. Include specific rates, timings, product names available in Rwanda, and step-by-step instructions where applicable. Keep it under 300 words. Return only the improved content text, no preamble.', '2026-06-28 12:30:03'),
-	(28, 1, 'ccd6595726128f7c4c1f42115afe7a4e', 'assistant', 'Apple Planting Best Practise\n\nIntroduction:\nApples are a nutritious and profitable crop for Rwandan farmers. With a suitable climate and proper care, apple trees can thrive in Nyagatare District. This advisory tip outlines the best practice for planting apples in Season B 2026.\n\nPre-planting Preparation:\n- Choose a well-draining, fertile soil with a pH between 5.5 and 6.5. Ameliorate acidic soils with lime (dolomitic limestone, Rwf 1,500/kg) at 1 kg/100 kg soil.\n- Conduct a soil test to determine nutrient levels. Apply DAP (18-46-0) fertilizer at 200 kg/ha before planting.\n\nPlanting:\n- Select disease-free, grafting materials from reputable nurseries like Rwanda Agriculture and Animal Resources Development Board (RAB) or private suppliers.\n- Plant apple trees in late August to early September, during Season B, when soil temperatures are suitable (around 15°C).\n- Space trees 3.5 meters apart in a 3x3 meter grid pattern. Dig holes 60 cm deep and 30 cm wide, adding 100 kg of well-rotted compost (Rwf 1,000/kg) per hole.\n- Plant the graft union at soil level, backfill with soil, and water thoroughly.\n\nPost-planting Care:\n- Water regularly during the first year, especially during dry spells. Apply 2,000 liters of water per tree per month.\n- Prune trees annually to maintain a central leader and promote fruiting.\n- Spray copper oxychloride (Cu(OH)Cl) at 1.5 kg/ha to prevent fungal diseases.\n\nRecommendations:\n- For more information on apple production and disease management, consult the Rwanda Agriculture and Animal Resources Development Board (RAB) or local extension officers.\n- Consider using integrated pest management (IPM) practices to minimize chemical use and maintain environmental sustainability.', '2026-06-28 12:30:03');
+	(28, 1, 'ccd6595726128f7c4c1f42115afe7a4e', 'assistant', 'Apple Planting Best Practise\n\nIntroduction:\nApples are a nutritious and profitable crop for Rwandan farmers. With a suitable climate and proper care, apple trees can thrive in Nyagatare District. This advisory tip outlines the best practice for planting apples in Season B 2026.\n\nPre-planting Preparation:\n- Choose a well-draining, fertile soil with a pH between 5.5 and 6.5. Ameliorate acidic soils with lime (dolomitic limestone, Rwf 1,500/kg) at 1 kg/100 kg soil.\n- Conduct a soil test to determine nutrient levels. Apply DAP (18-46-0) fertilizer at 200 kg/ha before planting.\n\nPlanting:\n- Select disease-free, grafting materials from reputable nurseries like Rwanda Agriculture and Animal Resources Development Board (RAB) or private suppliers.\n- Plant apple trees in late August to early September, during Season B, when soil temperatures are suitable (around 15°C).\n- Space trees 3.5 meters apart in a 3x3 meter grid pattern. Dig holes 60 cm deep and 30 cm wide, adding 100 kg of well-rotted compost (Rwf 1,000/kg) per hole.\n- Plant the graft union at soil level, backfill with soil, and water thoroughly.\n\nPost-planting Care:\n- Water regularly during the first year, especially during dry spells. Apply 2,000 liters of water per tree per month.\n- Prune trees annually to maintain a central leader and promote fruiting.\n- Spray copper oxychloride (Cu(OH)Cl) at 1.5 kg/ha to prevent fungal diseases.\n\nRecommendations:\n- For more information on apple production and disease management, consult the Rwanda Agriculture and Animal Resources Development Board (RAB) or local extension officers.\n- Consider using integrated pest management (IPM) practices to minimize chemical use and maintain environmental sustainability.', '2026-06-28 12:30:03'),
+	(29, 1, 'f093f57032eed7d872b95bf0ca87a17f', 'user', 'When should I plant beans in Season B?', '2026-07-05 17:52:04'),
+	(30, 1, 'f093f57032eed7d872b95bf0ca87a17f', 'assistant', 'Impomo kuri kuri uyu munsi!\n\n(Translation: No worries about your question!)\n\nIn Season B, the optimal time to plant beans in Nyagatare District depends on the weather conditions. Generally, in Rwanda, beans are planted in Season B from late March to early April. This allows the crop to mature during the cooler months of May and June.\n\nHowever, considering the current Season B 2026, I recommend checking the weather forecast for your area before planting. If the soil is dry and the temperature is favorable, you can plant beans during the first two weeks of April. This will give the crop enough time to establish itself before the onset of the rainy season.\n\nHere\'s a suggested planting schedule:\n\n- Check the soil moisture and temperature around the last week of March.\n- If conditions are favorable, plant beans on April 1-15.\n- Make sure to follow proper planting and spacing guidelines: 30-40 cm between rows and 10-15 cm between plants.\n- Use local bean varieties, such as \'Ibishyimbo\' or \'Mpologoma\', which are well-suited to Rwanda\'s climate and soil conditions.\n\nKuri uruhare! (Good luck!)\n\nIf you have any further questions or need more specific advice, feel free to ask!', '2026-07-05 17:52:04');
 
 -- Dumping structure for table sfas_db.crops
 CREATE TABLE IF NOT EXISTS `crops` (
@@ -90,9 +92,9 @@ CREATE TABLE IF NOT EXISTS `crops` (
   `image` varchar(255) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Dumping data for table sfas_db.crops: ~9 rows (approximately)
+-- Dumping data for table sfas_db.crops: ~10 rows (approximately)
 REPLACE INTO `crops` (`id`, `name`, `local_name`, `category`, `growing_season`, `min_rainfall_mm`, `max_rainfall_mm`, `description`, `image`, `created_at`) VALUES
 	(1, 'Maize', 'Ibigori', 'Cereal', 'Season A & B', 500, 800, 'Staple crop grown widely across Rwanda. Thrives in well-drained loam soils.', NULL, '2026-06-26 23:34:15'),
 	(2, 'Beans', 'Ibishyimbo', 'Legume', 'Season A & B', 300, 600, 'Primary protein source; fixes nitrogen improving soil fertility.', NULL, '2026-06-26 23:34:15'),
@@ -122,7 +124,7 @@ CREATE TABLE IF NOT EXISTS `farm_crops` (
   KEY `fk_fc_crop` (`crop_id`),
   CONSTRAINT `fk_fc_crop` FOREIGN KEY (`crop_id`) REFERENCES `crops` (`id`),
   CONSTRAINT `fk_fc_farm` FOREIGN KEY (`farm_id`) REFERENCES `farms` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Dumping data for table sfas_db.farm_crops: ~0 rows (approximately)
 REPLACE INTO `farm_crops` (`id`, `farm_id`, `crop_id`, `season`, `area_ha`, `planted_at`, `expected_harvest`, `status`, `notes`, `created_at`) VALUES
@@ -147,11 +149,78 @@ CREATE TABLE IF NOT EXISTS `farms` (
   PRIMARY KEY (`id`),
   KEY `idx_farm_farmer` (`farmer_id`),
   CONSTRAINT `fk_farm_farmer` FOREIGN KEY (`farmer_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Dumping data for table sfas_db.farms: ~1 rows (approximately)
+-- Dumping data for table sfas_db.farms: ~0 rows (approximately)
 REPLACE INTO `farms` (`id`, `farmer_id`, `farm_name`, `district`, `sector`, `cell`, `size_ha`, `soil_type`, `water_source`, `latitude`, `longitude`, `notes`, `created_at`, `updated_at`) VALUES
 	(1, 2, 'Rwenkorere Farm Valley Nyagatare', 'Nyagatare', 'Karama', 'Nyagahanga', 5.00, 'Clay-Loam', 'Both', NULL, NULL, 'My Farm is always green and fertile', '2026-06-27 08:14:06', '2026-06-27 08:14:06');
+
+-- Dumping structure for table sfas_db.fraud_flags
+CREATE TABLE IF NOT EXISTS `fraud_flags` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `flag_type` varchar(50) NOT NULL COMMENT 'cashier_volume_anomaly, quick_cancellation, orphaned_writeoff, cash_shortage_pattern, after_hours_sale',
+  `severity` enum('low','medium','high') NOT NULL DEFAULT 'medium',
+  `reference_type` varchar(50) DEFAULT NULL COMMENT 'sales_order, cashier_session, stock_movement, user',
+  `reference_id` int(10) unsigned DEFAULT NULL,
+  `user_id` int(10) unsigned DEFAULT NULL COMMENT 'the staff member this flag concerns',
+  `description` text DEFAULT NULL,
+  `detected_data` longtext DEFAULT NULL COMMENT 'JSON snapshot of the numbers that triggered this',
+  `detection_date` date NOT NULL COMMENT 'the day this scan ran — keeps re-running the scan from spamming duplicate flags for the same still-open issue on the same day',
+  `status` enum('open','reviewed','dismissed','confirmed') NOT NULL DEFAULT 'open',
+  `reviewed_by` int(10) unsigned DEFAULT NULL,
+  `reviewed_at` datetime DEFAULT NULL,
+  `review_notes` text DEFAULT NULL,
+  `detected_at` datetime NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uniq_flag_per_day` (`flag_type`,`reference_type`,`reference_id`,`detection_date`),
+  KEY `idx_status` (`status`),
+  KEY `idx_type` (`flag_type`),
+  KEY `idx_user` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Dumping data for table sfas_db.fraud_flags: ~0 rows (approximately)
+
+-- Dumping structure for table sfas_db.iot_devices
+CREATE TABLE IF NOT EXISTS `iot_devices` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `device_id` varchar(50) NOT NULL,
+  `name` varchar(100) DEFAULT NULL,
+  `location` varchar(100) DEFAULT NULL,
+  `farm_id` int(11) DEFAULT NULL COMMENT 'Links to farms table',
+  `sensors` varchar(255) DEFAULT 'DHT22' COMMENT 'Comma-separated sensor list',
+  `is_active` tinyint(1) DEFAULT 1,
+  `last_seen` datetime DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_device_id` (`device_id`),
+  KEY `fk_iot_farm` (`farm_id`),
+  CONSTRAINT `fk_iot_farm` FOREIGN KEY (`farm_id`) REFERENCES `farms` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Dumping data for table sfas_db.iot_devices: ~1 rows (approximately)
+REPLACE INTO `iot_devices` (`id`, `device_id`, `name`, `location`, `farm_id`, `sensors`, `is_active`, `last_seen`, `created_at`) VALUES
+	(1, 'SFAS-NODE-01', 'Field Sensor Node 1', 'Nyagatare Demo Farm', NULL, 'DHT22 (Temp+Humidity)', 1, NULL, '2026-07-08 05:07:51');
+
+-- Dumping structure for table sfas_db.iot_readings
+CREATE TABLE IF NOT EXISTS `iot_readings` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `device_id` varchar(50) NOT NULL DEFAULT 'SFAS-NODE-01' COMMENT 'Unique sensor node ID',
+  `location` varchar(100) DEFAULT 'Nyagatare Farm' COMMENT 'Farm or field name',
+  `temperature` decimal(5,2) DEFAULT NULL COMMENT 'Air temperature in Celsius (DHT22)',
+  `humidity` decimal(5,2) DEFAULT NULL COMMENT 'Air humidity percent (DHT22)',
+  `soil_moisture` decimal(5,2) DEFAULT NULL COMMENT 'Soil moisture percent (optional sensor)',
+  `rainfall_mm` decimal(6,2) DEFAULT NULL COMMENT 'Rainfall in mm (optional rain gauge)',
+  `light_lux` decimal(10,2) DEFAULT NULL COMMENT 'Light intensity lux (optional LDR)',
+  `battery_pct` int(3) DEFAULT NULL COMMENT 'Node battery percent',
+  `raw_json` text DEFAULT NULL COMMENT 'Full raw payload from sensor',
+  `recorded_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_iot_device` (`device_id`),
+  KEY `idx_iot_time` (`recorded_at`),
+  KEY `idx_iot_loc` (`location`(50))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Readings from ESP8266/Arduino IoT field sensors';
+
+-- Dumping data for table sfas_db.iot_readings: ~0 rows (approximately)
 
 -- Dumping structure for table sfas_db.market_prices
 CREATE TABLE IF NOT EXISTS `market_prices` (
@@ -169,9 +238,9 @@ CREATE TABLE IF NOT EXISTS `market_prices` (
   KEY `idx_mp_crop` (`crop_id`),
   KEY `idx_mp_date` (`price_date`),
   CONSTRAINT `fk_mp_crop` FOREIGN KEY (`crop_id`) REFERENCES `crops` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Dumping data for table sfas_db.market_prices: ~12 rows (approximately)
+-- Dumping data for table sfas_db.market_prices: ~11 rows (approximately)
 REPLACE INTO `market_prices` (`id`, `crop_id`, `market`, `district`, `price_rwf`, `unit`, `price_date`, `source`, `updated_by`, `created_at`) VALUES
 	(1, 1, 'Nyagatare Main Market', 'Nyagatare', 350.00, 'kg', '2026-06-20', 'Field Survey', 1, '2026-06-26 23:34:15'),
 	(2, 2, 'Nyagatare Main Market', 'Nyagatare', 650.00, 'kg', '2026-06-20', 'Field Survey', 1, '2026-06-26 23:34:15'),
@@ -196,11 +265,12 @@ CREATE TABLE IF NOT EXISTS `password_resets` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   KEY `idx_pr_email` (`email`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Dumping data for table sfas_db.password_resets: ~1 rows (approximately)
 REPLACE INTO `password_resets` (`id`, `email`, `otp`, `expires_at`, `used`, `created_at`) VALUES
-	(5, 'info.abaremy@gmail.com', '626765', '2026-06-27 10:00:15', 0, '2026-06-27 07:45:15');
+	(5, 'info.abaremy@gmail.com', '626765', '2026-06-27 10:00:15', 0, '2026-06-27 07:45:15'),
+	(6, 'umurerwadaniella0@gmail.com', '362301', '2026-06-30 19:07:16', 0, '2026-06-30 16:52:16');
 
 -- Dumping structure for table sfas_db.permissions
 CREATE TABLE IF NOT EXISTS `permissions` (
@@ -334,11 +404,12 @@ CREATE TABLE IF NOT EXISTS `user_activity_log` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   KEY `idx_ual_user` (`user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Dumping data for table sfas_db.user_activity_log: ~1 rows (approximately)
 REPLACE INTO `user_activity_log` (`id`, `user_id`, `action`, `description`, `ip_address`, `created_at`) VALUES
-	(1, 2, 'create', 'User account created', '::1', '2026-06-27 08:12:23');
+	(1, 2, 'create', 'User account created', '::1', '2026-06-27 08:12:23'),
+	(2, 3, 'create', 'User account created', '::1', '2026-06-30 16:58:32');
 
 -- Dumping structure for table sfas_db.users
 CREATE TABLE IF NOT EXISTS `users` (
@@ -367,12 +438,13 @@ CREATE TABLE IF NOT EXISTS `users` (
   KEY `idx_role` (`role_id`),
   KEY `idx_status` (`account_status`),
   CONSTRAINT `fk_user_role` FOREIGN KEY (`role_id`) REFERENCES `roles` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Dumping data for table sfas_db.users: ~2 rows (approximately)
+-- Dumping data for table sfas_db.users: ~3 rows (approximately)
 REPLACE INTO `users` (`id`, `firstname`, `lastname`, `username`, `email`, `phone`, `password`, `role_id`, `role_name`, `is_super_admin`, `account_status`, `photo`, `district`, `sector`, `otp_code`, `otp_expiry`, `last_login`, `created_by`, `created_at`, `updated_at`) VALUES
-	(1, 'Daniella', 'UMURERWA', NULL, 'umurerwadaniella0@gmail.com', NULL, '$2y$10$QjaSCGU.93W2MaMnS3msJOO0Um0/GOEjz2UatFmqk29wWm1Ufdk/y', 1, 'Admin', 1, 'active', 'users/e5b4e9245e6a803f2bb6_1.png', 'Nyagatare', NULL, NULL, NULL, '2026-06-28 14:13:42', NULL, '2026-06-26 23:34:15', '2026-06-28 12:13:42'),
-	(2, 'GASHAYIJA', 'Amza', NULL, 'gashayijafarmer@gmail.com', '078952432', '$2y$10$Ic/txIMXnza0L.PEkbmwiOPJ05ndspwWesIZasHJrxJzvlsLu1Kou', 3, 'Farmer', 0, 'active', NULL, 'Nyagatare', NULL, NULL, NULL, '2026-06-27 10:21:20', 1, '2026-06-27 08:12:23', '2026-06-27 08:30:33');
+	(1, 'Daniella', 'UMURERWA', NULL, 'umurerwadaniella0@gmail.com', NULL, '$2y$10$QjaSCGU.93W2MaMnS3msJOO0Um0/GOEjz2UatFmqk29wWm1Ufdk/y', 1, 'Admin', 1, 'active', 'users/e5b4e9245e6a803f2bb6_1.png', 'Nyagatare', NULL, NULL, NULL, '2026-07-05 19:47:33', NULL, '2026-06-26 23:34:15', '2026-07-05 17:47:33'),
+	(2, 'GASHAYIJA', 'Amza', NULL, 'gashayijafarmer@gmail.com', '078952432', '$2y$10$Ic/txIMXnza0L.PEkbmwiOPJ05ndspwWesIZasHJrxJzvlsLu1Kou', 3, 'Farmer', 0, 'active', NULL, 'Nyagatare', NULL, NULL, NULL, '2026-06-27 10:21:20', 1, '2026-06-27 08:12:23', '2026-06-27 08:30:33'),
+	(3, 'aby', 'shema', NULL, 'info.abaremy@gmail.com', '25874444', '$2y$10$jNjO.NDxKjVn9zc635IK.OXLG1iiVzxXOAjRwDAg9p80L8aQJMp1C', 3, 'Farmer', 0, 'pending', NULL, 'Nyagatare', NULL, '088448', '2026-06-30 19:28:32', NULL, NULL, '2026-06-30 16:58:32', '2026-06-30 16:58:32');
 
 -- Dumping structure for table sfas_db.weather_cache
 CREATE TABLE IF NOT EXISTS `weather_cache` (
@@ -384,7 +456,7 @@ CREATE TABLE IF NOT EXISTS `weather_cache` (
   `fetched_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_district` (`district`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Dumping data for table sfas_db.weather_cache: ~10 rows (approximately)
 REPLACE INTO `weather_cache` (`id`, `district`, `lat`, `lon`, `data_json`, `fetched_at`) VALUES

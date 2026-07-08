@@ -81,6 +81,10 @@ $routes = [
     /* ── Admin: AI Assistant ─────────────────────────── */
     '/admin/ai-assistant'                 => 'modules/AI/views/ai-assistant.php',
 
+    /* ── Admin: IoT ──────────────────────────────── */
+    '/api/iot'                            => 'modules/IoT/api/iotApi.php',
+    '/admin/iot-dashboard'                => 'modules/IoT/views/iot-dashboard.php',
+
     /* ── Admin: Weather ──────────────────────────────── */
     '/admin/weather'                      => 'modules/Weather/views/weather.php',
 
